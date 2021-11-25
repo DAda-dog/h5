@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title></title>
+		<style type="text/css">
+			*{margin: 0;padding: 0;}
+			.table{
+				margin: 100px auto 0;
+				border-radius: 15px;
+				text-align: center;
+				font-weight: bold;
+				background-color: #999;
+			}
+			.table tr td{
+				width: 100px;
+				height: 100px;
+				border-radius: 15px;
+				background-color: white;
+			}
+		</style>
+	</head>
+	<body>
+		<!-- 用table 绘制页面布局，  -->
+		<table class="table">
+			
+		</table>
+		<p style="text-align: center;">当前分数为：<span id="scoures"></span>分</p>
+		
+		
+		<script type="text/javascript">
+			// 需要什么数据来实现
+			var table = document.getElementsByClassName("table")[0];
+			// 初始化棋盘: 1, 绘制页面，给与td顺序id, 2.俩个数值随机2,4， 3,数值位置随机，每个数字是有特定颜色，
+			function init(){
+				var str = "";
+				var id = 0;
+				for(var i=0;i<4;i++){
+					str += "<tr>"
+					for(var j =0;j<4;j++){
+						str += "<td id= "+id+"></td>";
+						id++;
+					}
+					str += "</tr>"
+				}
+				table.innerHTML = str;
+				randTableNum();
+				randTableNum();
+				// 添加颜色和分数
+				addColorAndScoure();
+			}
+			
+			// 工具方法
+			function random(min,max){
+				return  parseInt(Math.round(Math.random()*(max-min)+min));
+			}
+			function $(id){
+				return document.getElementById(id);
+			}
+			// 生产一个随机数字2，4 在任意位置展示
+			function randTableNum(){
+				var randNum = random(1,2)*2;// 2,4
+				var randIndex = random(0,15);
+				//console.log(randNum,randIndex);
+				if($(randIndex).innerHTML==""){
+					// 当随机出现id对应 表格里面没有值，则添加
+					$(randIndex).innerHTML = randNum;
+				}else{
+					// 有值，再次调用此方法
+					randTableNum();
+				}
+			}
+			// 颜色添加:不同的数值给与特定颜色
+			var color={'':'#fff','2':'#0f0','4':'#00ccff','8':'#ff9900',
+								'16':'#00cc66','32':'#ffcccc','64':'#ff33ff','128':'#0066cc',
+								'256':'#6633cc','512':'#ff0099','1024':'#990033','2048':'#6600ff',
+								'4096':'#cc0066'};
+			function addColorAndScoure(){
+				var scoure = 0;
+				for(var i =0;i<16;i++){
+					// 有值，颜色添加
+					$(i).style.backgroundColor = color[$(i).innerHTML];
+					if($(i).innerHTML!=""){
+						// 数值添加
+						scoure += parseInt($(i).innerHTML)*10;
+					}
+				}
+				$("scoures").innerHTML = scoure;
+			}
+			
+			// 合并和移动，after,before是id数字
+			function change(after,before){
+				// 移动 before是前者，after是后者
+				// 前者没有值，后者有值
+				if($(after).innerHTML!=""&&$(before).innerHTML==""){
+					$(before).innerHTML = $(after).innerHTML;
+					$(after).innerHTML = "";
+				}
+				// 合并:前者有值，后者有值,且俩者值一样
+ 				if($(after).innerHTML!=""&&$(before).innerHTML!=""&&$(after).innerHTML==$(before).innerHTML){
+					// 把后者的值加给与前者，后者清空数据
+					// $(before).innerHTML = parseInt($(before).innerHTML)+parseInt($(after).innerHTML);
+					 $(before).innerHTML *=2;
+					$(after).innerHTML = "";
+				}
+			}
+			function left(){
+				// 从左到右 每一排合并
+				// 循环每一排
+				for(var i = 0;i<=12;i+=4){
+					// 循环一排里面每一个
+					for(var j=i;j<i+4;j++){
+						// 循环后者与前者合并
+						for(var k=j;k>i;k--){
+							change(k,k-1)
+						}
+					}
+				}
+			}
+			function right(){
+				// 循环每一排
+				for(var i = 0;i<=12;i+=4){
+					// 循环一排里面每一个
+					for(var j=i+3;j>=i;j--){
+						//i =0,j=3,k =3 ,j=2,k=2 2<3 ,j=0
+						for(var k=j;k<i+3;k++){
+							console.log(i,j,k);
+							change(k,k+1);
+						}
+					}
+				}
+			}
+			function up(){}
+			function down(){}
+			// 结果判断: 如果所有的值不能合并，则游戏结束，（2048，游戏通过）
+			function result(){
+				// 1.获取所有值
+				var arr =[];
+				for(var i = 0;i<16;i++){
+					if($(i).innerHTML!=""){
+						arr.push($(i).innerHTML);
+					}
+				}
+				// 如果数值长度是16 则说明棋盘已全部有数据
+				// 一开始，我就先判断游戏可以结束。
+				var flag = false;
+				if(arr.length==16){
+					// 先把一维数组变成二维数组
+					var result = [];
+					for(var i=0;i<4;i++){
+						result.push(arr.slice(i*4,(i+1)*4));
+					}	
+					// 判断左右，上下
+					for(var i=0;i<result.length;i++){
+						for(var j = 0;j<result[i].length;j++){
+							// 判断左右
+							// 判断下标越界
+							if(j<result[i].length-1){
+								if(result[i][j]==result[i][j+1]){
+									// 条件满足，游戏继续
+									flag =true;
+									// 它没有执行，说明左右没有一对相等
+								}
+							}
+							// 判断上下
+							if(i<result.length-1){
+								if(result[i][j]==result[i+1][j]){
+									flag =true;
+								}
+							}
+						}
+					}
+					// 只要上下，左右，有一对数据可以相等，则游戏没有结束，否则游戏结束。 --> flag 时true 没有结束，false 结束
+					// 当表格所有格子都有数据时退出
+					if(!flag){
+						alert("游戏结束，请重新开始！");
+						init();	
+					}
+				}
+				
+			}
+			
+			
+			window.onload = init();
+			//操作：键盘上下左右 事件处理
+			document.onkeydown = function(event){
+				//console.log(event);
+				// 37 ← ，38 ↑  39 → 40 ↓
+				if(event.keyCode==37) left();
+				if(event.keyCode==38) up();
+				if(event.keyCode==39) right();
+				if(event.keyCode==40) down();
+				if(event.keyCode>=37&&event.keyCode<=40){
+					randTableNum();
+					addColorAndScoure();
+					result();
+				}
+				
+			}
+			
+			// 操作：键盘上下左右，上：从上往下合并，下 ：
+			// 合并效果：俩个参数，把其中一个跟另一个合并，数字不一样则不动，前者没有数字，后者替换
+			// 结果判断: 如果所有的值不能合并，则游戏结束，（2048，游戏通过）
+			
+		</script>
+	</body>
+</html>
