@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>推箱子进阶版</title>
+		<style>
+			#canvas{
+				background-color:#336699 ;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas height="800" width="800" id="canvas"></canvas>
+		<div>
+			<button id='pre'>上一关</button>
+			<button id='next'>下一关</button>
+			<input type="text" value='1' id='guanqia'>
+			<button id='go'>GO</button>
+			<button id="restart">重新开始</button>
+		</div>
+		<script src="js/index.js" type="text/javascript" charset="utf-8"></script>
+		<script type="text/javascript">
+			var canvas = document.getElementById("canvas");
+			var ctx = canvas.getContext("2d");
+			// 关卡下标
+			var index = 0;
+			var option ={
+				// box 宽度
+				width:50,
+				// box里面的间距
+				m : 2,
+				// box的信息
+				boxs : [
+					{},
+					{
+						color:'#333',
+						r:5,
+						// 保存墙的坐标信息
+						data:[]
+					},
+					{
+						color:'#9f3',
+						r:24,
+						// 保存目标的坐标信息
+						data:[]
+					},
+					{
+						color:'rgba(255,50,0,0.8)',
+						r:5,
+						// 保存箱子的坐标信息
+						data:[]
+				
+					},
+					{
+						color:'rgba(255,220,0,0.8)',
+						r:5,
+						// 保存人物的坐标信息
+						data:[]
+					}
+				],
+				// 画一个圆或方
+				drawImg:function(x,y,w,r,m,color){
+					ctx.beginPath();
+					// 10 x, 10 y 5 r ,w 40
+					ctx.moveTo(x,y+r);
+					// 左->下
+					ctx.arcTo(x,y+w-m,x+r,y+w-m,r);
+					// 下->右
+					ctx.arcTo(x+w-m,y+w-m,x+w-m,y+w-r-m,r);
+					// 右 -> 上
+					ctx.arcTo(x+w-m,y,x+w-r-m,y,r);
+					// 上 -> 左
+					ctx.arcTo(x,y,x,y+r,r);
+					ctx.fillStyle =color;
+					ctx.fill();
+				},
+				// 画整个游戏
+				drawInit:function(level){
+					var o = this;
+					ctx.clearRect(0,0,800,800);
+					for(let i = 1;i<o.boxs.length;i++){
+						o.boxs[i].data = [];
+					}
+					for(var i =0;i<level.length;i++){
+						for(var j =0;j<level[i].length;j++){
+							var box  = o.boxs[level[i][j]];
+							if(level[i][j]>0){
+								// 把所有地图中人物，墙，目标，箱子的坐标信息保存对应的地方
+								if(level[i][j]==5){
+									// 箱子和目标重合
+									o.drawImg(j*o.width,i*o.width,o.width,o.boxs[2].r,o.m,o.boxs[2].color);
+									o.drawImg(j*o.width,i*o.width,o.width,o.boxs[3].r,o.m,o.boxs[3].color);
+									o.boxs[2].data.push(i*level[i].length+j);
+									o.boxs[3].data.push(i*level[i].length+j);
+								}else{
+									o.drawImg(j*o.width,i*o.width,o.width,box.r,2,box.color);
+									o.boxs[level[i][j]].data.push(i*level[i].length+j);
+								}
+							}
+						}
+					}
+				},
+				// 根据保存的坐标信息绘制地图
+				drawBox:function(){
+					let tboxs = this.boxs;
+					for(let i = 1;i<tboxs.length;i++){
+						for(let j= 0;j<tboxs[i].data.length;j++){
+							// 取出保存的坐标信息；
+							let [x,y] = [tboxs[i].data[j]%16*this.width,parseInt(tboxs[i].data[j]/16)*this.width];
+							this.drawImg(x,y,this.width,tboxs[i].r,this.m,tboxs[i].color);
+							
+						}
+					}
+				}
+			}
+			option.drawInit(levels[index]);
+			console.log(option.boxs);
+			//option.drawBox();
+			// 注册事件
+			document.onkeydown  = function(event){
+				// event 记录上下左右信息
+				// 不改变地图信息，只改变人物和箱子的坐标信息
+				// 左移动
+				let player = option.boxs[4].data[0];// 人物信息只有一个
+				let action = [-1,-16,1,16][event.keyCode-37];
+				action= action?action:0;
+				console.log(event.keyCode,event.keyCode-37,action);
+					// 判断能否向左移动
+					let next = player + action;
+					// next 坐标在墙里面
+					if(option.boxs[1].data.includes(next)) return;
+					// next坐标在箱子里面
+					if(option.boxs[3].data.includes(next)){
+						// 箱子前面的坐标
+						let bnext = next + action;
+						// bnext坐标在墙里面
+						if(option.boxs[1].data.includes(bnext)) return;
+						// bnext坐标在箱子里面
+						if(option.boxs[3].data.includes(bnext)) return;
+						// 记录人物前面的箱子 坐标信息数组的下标
+						let bindex = option.boxs[3].data.indexOf(next);
+						
+						option.boxs[3].data[bindex] = bnext;
+					}
+					option.boxs[4].data[0] = next;
+					ctx.clearRect(0,0,800,800);
+					option.drawBox();
+					isOver();
+			}
+			// 判断游戏结束
+			// 游戏结束标志：所有箱子和目标全部重合 --> 箱子的坐标跟目标坐标一样
+			function isOver(){
+				let b = option.boxs[3].data;
+				let t = option.boxs[2].data;
+				// 默认 游戏已经结束
+				var flag =true;
+				for(let i =0;i<t.length;i++){
+					// 如果 箱子里面数据 包含目标信息，继续循环下一个判断，否则循环结束，使游戏结束判断为false； 
+					if(!b.includes(t[i])){
+						flag = false;
+						break;
+					}
+				}
+				if(flag){
+					setTimeout(function(){
+						if(confirm("游戏已结束，请重新开始！")){
+							option.drawInit(levels[index]);
+						};
+					},500);
+					
+				}
+			}
+			var pre = document.getElementById('pre');
+			var next = document.getElementById('next');
+			var guanqia = document.getElementById('guanqia');
+			var go = document.getElementById('go');
+			var restart = document.getElementById('restart');
+
+			pre.onclick=function(){
+				if(index<=0){
+					alert('当前为第一关')
+					index=0
+				}else{
+					index--;
+					option.drawInit(levels[index]);
+					guanqia.value=index+1
+				}
+			}
+			next.onclick=function(){
+				if(index>=levels.length){
+					alert('当前为最后一关')
+					index=0
+				}else{
+					index++;
+					option.drawInit(levels[index]);
+					guanqia.value=index++
+				}
+			}
+			go.onclick=function(){
+				if(guanqia.value>=levels.length||guanqia.value<=0){
+					alert(guanqia.value)
+					index=0
+				}else{
+					index=guanqia.value
+					option.drawInit(levels[index]);
+					guanqia.value=index++
+				}
+			}
+			restart.onclick=function(){
+				option.drawInit(levels[index--]);
+			}
+			
+			
+		</script>
+	</body>
+</html>
